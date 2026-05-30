@@ -1,44 +1,11 @@
 from flask import Flask, render_template, jsonify
-from flask_socketio import SocketIO, emit
 import random
 import threading
 import time
 import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'network-monitor-secret-2024'
-socketio = SocketIO(app, cors_allowed_origins="*")
 
-# --- AI anomaliya aniqlash modeli (simulyatsiya) ---
-class AIAnomalyDetector:
-    def __init__(self):
-        self.threshold = 5000
-        self.history = []
-
-    def analyze(self, packet_count, protocol, source_ip):
-        risk = 0
-        reason = "Normal"
-
-        if packet_count > self.threshold:
-            risk += 60
-            reason = "DDoS hujumi"
-        if protocol == "UNKNOWN":
-            risk += 30
-            reason = "Noma'lum protokol"
-        if source_ip.startswith("45.") or source_ip.startswith("91."):
-            risk += 40
-            reason = "Shubhali IP manzil"
-        if packet_count > 2000 and protocol == "TCP":
-            risk += 20
-            reason = "Port skanerlash"
-
-        risk = min(risk, 100)
-        level = "critical" if risk > 70 else "warning" if risk > 30 else "info"
-        return {"risk": risk, "reason": reason, "level": level}
-
-detector = AIAnomalyDetector()
-
-# --- Ma'lumotlar ---
 stats = {
     "packets_per_sec": 4821,
     "anomalies": 0,
@@ -62,7 +29,6 @@ def generate_traffic():
     while True:
         normal = random.randint(2500, 6500)
         suspicious = random.randint(0, 600)
-
         stats["packets_per_sec"] = normal + suspicious
         stats["latency_ms"] = random.randint(8, 35)
         stats["traffic_history"].append(normal)
@@ -70,19 +36,17 @@ def generate_traffic():
         stats["suspicious_history"].append(suspicious)
         stats["suspicious_history"] = stats["suspicious_history"][-60:]
 
-        # Tasodifiy hujum simulyatsiyasi (har 20 sekundda)
         if random.random() < 0.05:
             scenario = random.choice(ATTACK_SCENARIOS)
-            result = detector.analyze(
-                scenario["packets"], scenario["protocol"], scenario["ip"]
-            )
+            risk = 80 if scenario["packets"] > 5000 else 50
+            level = "critical" if risk > 70 else "warning"
             alert = {
                 "id": int(time.time() * 1000),
-                "type": result["level"],
+                "type": level,
                 "title": scenario["type"],
                 "meta": f"{scenario['ip']} · {scenario['packets']} paket/s",
                 "time": datetime.datetime.now().strftime("%H:%M:%S"),
-                "risk": result["risk"],
+                "risk": risk,
             }
             stats["alerts"].insert(0, alert)
             stats["alerts"] = stats["alerts"][:10]
@@ -92,18 +56,10 @@ def generate_traffic():
         else:
             stats["security_score"] = min(99, stats["security_score"] + 1)
 
-        socketio.emit("update", {
-            "packets_per_sec": stats["packets_per_sec"],
-            "anomalies": stats["anomalies"],
-            "blocked_ips": stats["blocked_ips"],
-            "latency_ms": stats["latency_ms"],
-            "security_score": stats["security_score"],
-            "traffic_history": stats["traffic_history"],
-            "suspicious_history": stats["suspicious_history"],
-            "alerts": stats["alerts"][:5],
-        })
-
         time.sleep(2)
+
+thread = threading.Thread(target=generate_traffic, daemon=True)
+thread.start()
 
 @app.route("/")
 def index():
@@ -116,14 +72,13 @@ def get_stats():
 @app.route("/api/simulate-attack")
 def simulate_attack():
     scenario = random.choice(ATTACK_SCENARIOS)
-    result = detector.analyze(scenario["packets"], scenario["protocol"], scenario["ip"])
     alert = {
         "id": int(time.time() * 1000),
-        "type": result["level"],
+        "type": "critical",
         "title": scenario["type"],
         "meta": f"{scenario['ip']} · {scenario['packets']} paket/s",
         "time": datetime.datetime.now().strftime("%H:%M:%S"),
-        "risk": result["risk"],
+        "risk": 85,
     }
     stats["alerts"].insert(0, alert)
     stats["alerts"] = stats["alerts"][:10]
@@ -139,11 +94,5 @@ def clear_alerts():
     stats["security_score"] = 97
     return jsonify({"status": "ok"})
 
-@socketio.on("connect")
-def on_connect():
-    emit("update", stats)
-
 if __name__ == "__main__":
-    thread = threading.Thread(target=generate_traffic, daemon=True)
-    thread.start()
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False)
