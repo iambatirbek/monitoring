@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarmoq Xavfsizligi Monitoring</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 32px; height: 32px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .logo-text { font-size: 15px; font-weight: 600; }
+  .logo-sub { font-size: 11px; color: var(--muted); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .live-badge { display: flex; align-items: center; gap: 6px; background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.25); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.4;transform:scale(0.8);} }
+  .clock { font-size: 12px; color: var(--muted); font-family: 'Courier New', monospace; }
+  .main { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+  .metric { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; position: relative; overflow: hidden; transition: border-color 0.3s; }
+  .metric:hover { border-color: rgba(255,255,255,0.15); }
+  .metric::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:2px 2px 0 0; }
+  .metric.blue::before { background: var(--blue); }
+  .metric.red::before { background: var(--red); }
+  .metric.amber::before { background: var(--amber); }
+  .metric.green::before { background: var(--green); }
+  .metric.purple::before { background: var(--purple); }
+  .metric-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .metric-val { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+  .up { color: var(--green); }
+  .down { color: var(--red); }
+  .row2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .card-title span { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .alerts { display: flex; flex-direction: column; gap: 8px; }
+  .alert { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid transparent; animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-8px);} to{opacity:1;transform:translateY(0);} }
+  .alert.critical { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); }
+  .alert.warning { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); }
+  .alert.info { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.2); }
+  .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .alert.critical .alert-dot { background: var(--red); }
+  .alert.warning .alert-dot { background: var(--amber); }
+  .alert.info .alert-dot { background: var(--blue); }
+  .alert-title { font-size: 12px; font-weight: 600; }
+  .alert.critical .alert-title { color: #fca5a5; }
+  .alert.warning .alert-title { color: #fcd34d; }
+  .alert.info .alert-title { color: #93c5fd; }
+  .alert-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .alert-time { font-size: 10px; color: var(--muted); font-family: monospace; white-space: nowrap; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .proto-row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .proto-name { font-size: 11px; color: var(--muted); width: 72px; flex-shrink: 0; }
+  .proto-track { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .proto-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .proto-pct { font-size: 11px; font-weight: 600; color: var(--text); width: 32px; text-align: right; }
+  .ip-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .ip-table th { color: var(--muted); text-align: left; padding: 0 0 8px; font-weight: 600; border-bottom: 1px solid var(--border); }
+  .ip-table td { padding: 7px 0; border-bottom: 1px solid var(--border); color: var(--text); }
+  .ip-table tr:last-child td { border-bottom: none; }
+  .pill { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .pill.hi { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  .pill.md { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .pill.lo { background: rgba(34,197,94,0.15); color: #86efac; }
+  .ai-score { font-size: 40px; font-weight: 700; color: var(--text); line-height: 1; }
+  .ai-track { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; margin: 10px 0 6px; }
+  .ai-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width 1s ease, background 0.5s; }
+  .tag { display: inline-block; font-size: 10px; padding: 3px 8px; border-radius: 6px; background: var(--bg3); color: var(--muted); border: 1px solid var(--border); margin: 3px 3px 0 0; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); cursor: pointer; transition: all 0.15s; }
+  .btn:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
+  .btn.danger { border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+  .btn.danger:hover { background: rgba(239,68,68,0.1); }
+  .empty-alerts { font-size: 12px; color: var(--muted); text-align: center; padding: 16px 0; }
+  .legend { display: flex; gap: 16px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 4px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    <div>
+      <div class="logo-text">Tarmoq Xavfsizligi Monitoring</div>
+      <div class="logo-sub">Sun'iy intellekt asosida tahdid aniqlash tizimi</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge"><span class="live-dot"></span>Jonli ulanish</div>
+    <div class="clock" id="clk">--:--:--</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="metrics">
+    <div class="metric blue">
+      <div class="metric-label">Paketlar / sek</div>
+      <div class="metric-val" id="pps">—</div>
+      <div class="metric-sub up">↑ Real vaqt</div>
+    </div>
+    <div class="metric red">
+      <div class="metric-label">Anomaliyalar</div>
+      <div class="metric-val" id="anm">—</div>
+      <div class="metric-sub down" id="anm-sub">AI aniqladi</div>
+    </div>
+    <div class="metric amber">
+      <div class="metric-label">Bloklangan IP</div>
+      <div class="metric-val" id="blk">—</div>
+      <div class="metric-sub">bugun jami</div>
+    </div>
+    <div class="metric green">
+      <div class="metric-label">AI aniqliq</div>
+      <div class="metric-val">98.4%</div>
+      <div class="metric-sub up">model v2.1</div>
+    </div>
+    <div class="metric purple">
+      <div class="metric-label">Kechikish</div>
+      <div class="metric-val" id="lat">—</div>
+      <div class="metric-sub" id="lat-sub">normal</div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">
+        <span style="background:#3b82f6;"></span>
+        Tarmoq trafigi — so'nggi 60 sekund
+        <div class="legend" style="margin-left:auto;">
+          <span><span class="legend-dot" style="background:#3b82f6;"></span>Normal</span>
+          <span><span class="legend-dot" style="background:#ef4444;border-top:2px dashed #ef4444;height:0;margin-top:2px;"></span>Shubhali</span>
+        </div>
+      </div>
+      <div style="position:relative;height:170px;">
+        <canvas id="trafficChart" role="img" aria-label="60 sekundlik tarmoq trafigi grafigi">Trafik ma'lumotlari yuklanmoqda.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span style="background:#ef4444;"></span>Ogohlantirishlar</div>
+      <div class="alerts" id="alertList">
+        <div class="empty-alerts">Ma'lumotlar yuklanmoqda...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row3">
+    <div class="card">
+      <div class="card-title"><span style="background:#a78bfa;"></span>Protokollar</div>
+      <div class="proto-row"><span class="proto-name">HTTP/S</span><div class="proto-track"><div class="proto-fill" style="width:72%;background:#3b82f6;"></div></div><span class="proto-pct">72%</span></div>
+      <div class="proto-row"><span class="proto-name">DNS</span><div class="proto-track"><div class="proto-fill" style="width:11%;background:#22c55e;"></div></div><span class="proto-pct">11%</span></div>
+      <div class="proto-row"><span class="proto-name">SSH/FTP</span><div class="proto-track"><div class="proto-fill" style="width:8%;background:#f59e0b;"></div></div><span class="proto-pct">8%</span></div>
+      <div class="proto-row"><span class="proto-name">SMTP</span><div class="proto-track"><div class="proto-fill" style="width:5%;background:#a78bfa;"></div></div><span class="proto-pct">5%</span></div>
+      <div class="proto-row"><span class="proto-name">Noma'lum</span><div class="proto-track"><div class="proto-fill" style="width:4%;background:#ef4444;"></div></div><span class="proto-pct">4%</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span style="background:#f59e0b;"></span>Shubhali IP manzillar</div>
+      <table class="ip-table">
+        <thead><tr><th>IP manzil</th><th>Hujum turi</th><th>Xavf</th></tr></thead>
+        <tbody>
+          <tr><td style="font-family:monospace;font-size:10px;">45.33.32.156</td><td>Port scan</td><td><span class="pill hi">Yuqori</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">192.168.1.45</td><td>DDoS</td><td><span class="pill hi">Yuqori</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">103.21.244.0</td><td>Brute-force</td><td><span class="pill md">O'rta</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">185.220.101.1</td><td>Fishing</td><td><span class="pill md">O'rta</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">192.168.2.10</td><td>Ma'lumot oqishi</td><td><span class="pill lo">Past</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title"><span style="background:#22c55e;"></span>AI modeli holati</div>
+      <div class="ai-score" id="aiScore">—</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Xavfsizlik indeksi / 100</div>
+      <div class="ai-track"><div class="ai-fill" id="aiFill" style="width:0%;"></div></div>
+      <div style="font-size:11px;color:var(--muted);">Holat: <span id="aiStatus" style="color:var(--green);font-weight:600;">Yuklanmoqda</span></div>
+      <div style="margin-top:10px;">
+        <span class="tag">Isolation Forest</span>
+        <span class="tag">LSTM</span>
+        <span class="tag">Random Forest</span>
+        <span class="tag">IP reputatsiya</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn danger" onclick="simulateAttack()">⚡ Hujum simulyatsiya</button>
+    <button class="btn" onclick="clearAlerts()">🗑 Tozalash</button>
+    <button class="btn" onclick="location.reload()">↻ Yangilash</button>
+  </div>
+</div>
+
+<script>
+const socket = io();
+const normData = Array(60).fill(0);
+const suspData = Array(60).fill(0);
+
+const chart = new Chart(document.getElementById('trafficChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: Array(60).fill(''),
+    datasets: [
+      { label: 'Normal', data: normData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 },
+      { label: 'Shubhali', data: suspData, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5, borderDash: [5, 3] }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { display: false }, grid: { display: false } },
+      y: { ticks: { font: { size: 10 }, color: '#6b7280', callback: v => v >= 1000 ? (v/1000).toFixed(1)+'k' : v }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+});
+
+setInterval(() => {
+  document.getElementById('clk').textContent = new Date().toLocaleTimeString('uz-UZ');
+}, 1000);
+
+socket.on('update', data => {
+  document.getElementById('pps').textContent = data.packets_per_sec.toLocaleString();
+  document.getElementById('anm').textContent = data.anomalies;
+  document.getElementById('blk').textContent = data.blocked_ips.toLocaleString();
+  document.getElementById('lat').textContent = data.latency_ms + 'ms';
+  document.getElementById('lat-sub').textContent = data.latency_ms < 20 ? 'normal' : 'sekin';
+
+  const sc = data.security_score;
+  document.getElementById('aiScore').textContent = sc;
+  document.getElementById('aiFill').style.width = sc + '%';
+  document.getElementById('aiFill').style.background = sc < 70 ? '#ef4444' : sc < 82 ? '#f59e0b' : '#22c55e';
+  const ss = document.getElementById('aiStatus');
+  ss.textContent = sc < 70 ? 'Xavfli' : sc < 82 ? 'Ehtiyotkor' : 'Xavfsiz';
+  ss.style.color = sc < 70 ? '#ef4444' : sc < 82 ? '#f59e0b' : '#22c55e';
+
+  if (data.traffic_history) {
+    const half = Math.floor(data.traffic_history.length / 2);
+    data.traffic_history.forEach((v, i) => { normData[i] = v; });
+    data.suspicious_history.forEach((v, i) => { suspData[i] = v; });
+    chart.update('none');
+  }
+
+  if (data.alerts && data.alerts.length > 0) {
+    const list = document.getElementById('alertList');
+    list.innerHTML = data.alerts.map(a => `
+      <div class="alert ${a.type}">
+        <span class="alert-dot"></span>
+        <div style="flex:1;">
+          <div class="alert-title">${a.title}</div>
+          <div class="alert-meta">${a.meta}</div>
+        </div>
+        <span class="alert-time">${a.time}</span>
+      </div>
+    `).join('');
+  }
+});
+
+function simulateAttack() {
+  fetch('/api/simulate-attack').then(r => r.json()).then(d => console.log('Attack simulated:', d));
+}
+
+function clearAlerts() {
+  fetch('/api/clear').then(() => {
+    document.getElementById('alertList').innerHTML = '<div class="empty-alerts">✓ Tozalandi</div>';
+  });
+}
+</script>
+</body>
+</html>
