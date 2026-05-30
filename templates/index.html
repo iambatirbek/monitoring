@@ -156,7 +156,7 @@ const chart = new Chart(document.getElementById('tc').getContext('2d'), {
     labels: Array(60).fill(''),
     datasets: [
       {label:'Normal', data:nData, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.08)', fill:true, tension:0.4, pointRadius:0, borderWidth:1.5},
-      {label:'Shubhali', data:sData, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.08)', fill:true, tension:0.4, pointRadius:0, borderWidth:1.5, borderDash:[5,3]}
+      {label:'Gumanli', data:sData, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.08)', fill:true, tension:0.4, pointRadius:0, borderWidth:1.5, borderDash:[5,3]}
     ]
   },
   options: {
@@ -185,7 +185,7 @@ function loadData() {
       document.getElementById('aiFill').style.width = sc + '%';
       document.getElementById('aiFill').style.background = sc < 70 ? '#ef4444' : sc < 82 ? '#f59e0b' : '#22c55e';
       const ss = document.getElementById('aiStatus');
-      ss.textContent = sc < 70 ? 'Xavfli' : sc < 82 ? 'Ehtiyotkor' : 'Xavfsiz';
+      ss.textContent = sc < 70 ? 'Qawipli' : sc < 82 ? 'Ortasha' : 'Qawipsiz';
       ss.style.color = sc < 70 ? '#ef4444' : sc < 82 ? '#f59e0b' : '#22c55e';
 
       if (d.traffic_history) {
@@ -206,7 +206,7 @@ function loadData() {
             <span class="a-time">${a.time}</span>
           </div>`).join('');
       } else {
-        list.innerHTML = '<div class="empty">Hozircha ogohlantirishlar yo\'q</div>';
+        list.innerHTML = '<div class="empty">Hazirshe eskertiwler joq</div>';
       }
     });
 }
