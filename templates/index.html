@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tarmoq Xavfsizligi Monitoring</title>
+<title>Tarmaq Qawipsizligi Monitoringi</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
@@ -75,32 +75,32 @@
 <body>
 <div class="topbar">
   <div>
-    <div class="logo-text">🛡 Tarmoq Xavfsizligi Monitoring</div>
-    <div class="logo-sub">Sun'iy intellekt asosida tahdid aniqlash tizimi</div>
+    <div class="logo-text">🛡 Tarmaq Qawipsizligi Monitoringi</div>
+    <div class="logo-sub">Jasalma intellekt tiykarinda qawiplerdi aniqlaw sistemasi</div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <div class="live-badge"><span class="live-dot"></span>Jonli ulanish</div>
+    <div class="live-badge"><span class="live-dot"></span>Tikkeley jalganiw</div>
     <div class="clock" id="clk">--:--:--</div>
   </div>
 </div>
 
 <div class="main">
   <div class="metrics">
-    <div class="metric m-blue"><div class="m-label">Paketlar / sek</div><div class="m-val" id="pps">—</div><div class="m-sub up">↑ Real vaqt</div></div>
+    <div class="metric m-blue"><div class="m-label">Paketler / sek</div><div class="m-val" id="pps">—</div><div class="m-sub up">↑ Real waqit</div></div>
     <div class="metric m-red"><div class="m-label">Anomaliyalar</div><div class="m-val" id="anm">—</div><div class="m-sub down">AI aniqladi</div></div>
-    <div class="metric m-amber"><div class="m-label">Bloklangan IP</div><div class="m-val" id="blk">—</div><div class="m-sub">bugun jami</div></div>
+    <div class="metric m-amber"><div class="m-label">Bloklangan IP</div><div class="m-val" id="blk">—</div><div class="m-sub">bugin jami</div></div>
     <div class="metric m-green"><div class="m-label">AI aniqliq</div><div class="m-val">98.4%</div><div class="m-sub up">model v2.1</div></div>
-    <div class="metric m-purple"><div class="m-label">Kechikish</div><div class="m-val" id="lat">—</div><div class="m-sub" id="lat-sub">normal</div></div>
+    <div class="metric m-purple"><div class="m-label">Keshigiw</div><div class="m-val" id="lat">—</div><div class="m-sub" id="lat-sub">normal</div></div>
   </div>
 
   <div class="row2">
     <div class="card">
-      <div class="card-title"><span class="cdot" style="background:var(--blue);"></span>Tarmoq trafigi — so'nggi 60 sekund</div>
-      <div style="position:relative;height:170px;"><canvas id="tc" role="img" aria-label="Tarmoq trafigi grafigi">Yuklanmoqda.</canvas></div>
+      <div class="card-title"><span class="cdot" style="background:var(--blue);"></span>Tarmaq trafigi — songi 60 sekund</div>
+      <div style="position:relative;height:170px;"><canvas id="tc" role="img" aria-label="Tarmoq trafigi grafigi">Juklenbekte.</canvas></div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="cdot" style="background:var(--red);"></span>Ogohlantirishlar</div>
-      <div class="alerts" id="alList"><div class="empty">Yuklanmoqda...</div></div>
+      <div class="card-title"><span class="cdot" style="background:var(--red);"></span>Eskertiwler</div>
+      <div class="alerts" id="alList"><div class="empty">Juklenbekte...</div></div>
     </div>
   </div>
 
@@ -111,37 +111,37 @@
       <div class="proto-row"><span class="p-name">DNS</span><div class="p-track"><div class="p-fill" style="width:11%;background:#22c55e;"></div></div><span class="p-pct">11%</span></div>
       <div class="proto-row"><span class="p-name">SSH/FTP</span><div class="p-track"><div class="p-fill" style="width:8%;background:#f59e0b;"></div></div><span class="p-pct">8%</span></div>
       <div class="proto-row"><span class="p-name">SMTP</span><div class="p-track"><div class="p-fill" style="width:5%;background:#a78bfa;"></div></div><span class="p-pct">5%</span></div>
-      <div class="proto-row"><span class="p-name">Noma'lum</span><div class="p-track"><div class="p-fill" style="width:4%;background:#ef4444;"></div></div><span class="p-pct">4%</span></div>
+      <div class="proto-row"><span class="p-name">Belgisiz</span><div class="p-track"><div class="p-fill" style="width:4%;background:#ef4444;"></div></div><span class="p-pct">4%</span></div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="cdot" style="background:var(--amber);"></span>Shubhali IP manzillar</div>
+      <div class="card-title"><span class="cdot" style="background:var(--amber);"></span>Gumanli IP manziller</div>
       <table class="ip-tbl">
-        <thead><tr><th>IP manzil</th><th>Hujum turi</th><th>Xavf</th></tr></thead>
+        <thead><tr><th>IP manzil</th><th>Hujim turi</th><th>Qawip</th></tr></thead>
         <tbody>
-          <tr><td style="font-family:monospace;font-size:10px;">45.33.32.156</td><td>Port scan</td><td><span class="pill p-hi">Yuqori</span></td></tr>
-          <tr><td style="font-family:monospace;font-size:10px;">192.168.1.45</td><td>DDoS</td><td><span class="pill p-hi">Yuqori</span></td></tr>
-          <tr><td style="font-family:monospace;font-size:10px;">103.21.244.0</td><td>Brute-force</td><td><span class="pill p-md">O'rta</span></td></tr>
-          <tr><td style="font-family:monospace;font-size:10px;">185.220.101.1</td><td>Fishing</td><td><span class="pill p-md">O'rta</span></td></tr>
-          <tr><td style="font-family:monospace;font-size:10px;">192.168.2.10</td><td>Ma'lumot oqishi</td><td><span class="pill p-lo">Past</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">45.33.32.156</td><td>Port scan</td><td><span class="pill p-hi">Joqari</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">192.168.1.45</td><td>DDoS</td><td><span class="pill p-hi">Joqari</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">103.21.244.0</td><td>Brute-force</td><td><span class="pill p-md">Orta</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">185.220.101.1</td><td>Phishing</td><td><span class="pill p-md">Orta</span></td></tr>
+          <tr><td style="font-family:monospace;font-size:10px;">192.168.2.10</td><td>Magliwmat agimi</td><td><span class="pill p-lo">Tomen</span></td></tr>
         </tbody>
       </table>
     </div>
     <div class="card">
-      <div class="card-title"><span class="cdot" style="background:var(--green);"></span>AI modeli holati</div>
+      <div class="card-title"><span class="cdot" style="background:var(--green);"></span>AI modelinin jagdayi</div>
       <div class="ai-score" id="aiScore">—</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Xavfsizlik indeksi / 100</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Qawipsizlik indeksi / 100</div>
       <div class="ai-track"><div class="ai-fill" id="aiFill" style="width:0%;background:var(--green);"></div></div>
-      <div style="font-size:11px;color:var(--muted);">Holat: <span id="aiStatus" style="color:var(--green);font-weight:600;">Yuklanmoqda</span></div>
+      <div style="font-size:11px;color:var(--muted);">Jagday: <span id="aiStatus" style="color:var(--green);font-weight:600;">Juklenbekte</span></div>
       <div style="margin-top:10px;">
-        <span class="tag">Isolation Forest</span><span class="tag">LSTM</span><span class="tag">Random Forest</span><span class="tag">IP reputatsiya</span>
+        <span class="tag">Isolation Forest</span><span class="tag">LSTM</span><span class="tag">Random Forest</span><span class="tag">IP reputaciya</span>
       </div>
     </div>
   </div>
 
   <div class="actions">
-    <button class="btn danger" onclick="simAttack()">⚡ Hujum simulyatsiya</button>
-    <button class="btn" onclick="clearAll()">🗑 Tozalash</button>
-    <button class="btn" onclick="loadData()">↻ Yangilash</button>
+    <button class="btn danger" onclick="simAttack()">⚡ Hujim simulyaciya</button>
+    <button class="btn" onclick="clearAll()">🗑 Tazalaw</button>
+    <button class="btn" onclick="loadData()">↻ Janalaw</button>
   </div>
 </div>
 
